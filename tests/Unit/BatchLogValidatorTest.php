@@ -4,7 +4,6 @@ namespace Tests\Unit;
 
 use App\Domain\Logs\InvalidLogBatch;
 use App\Domain\Logs\Validation\BatchLogValidator;
-use App\Domain\Logs\Validation\LogEntryValidator;
 use DateTimeImmutable;
 use Illuminate\Config\Repository;
 use PHPUnit\Framework\TestCase;
@@ -21,9 +20,9 @@ final class BatchLogValidatorTest extends TestCase
             ],
         ], JSON_THROW_ON_ERROR), new DateTimeImmutable('2026-08-12T12:00:00Z'));
 
-        self::assertSame(2, $result->acceptedCount());
-        self::assertSame(['debug', 'error'], $result->levels);
-        self::assertSame([['index' => 1, 'reason' => 'timestamp must be a valid ISO 8601 value']], $result->rejected);
+        self::assertCount(2, $result['timestamps']);
+        self::assertSame(['debug', 'error'], $result['levels']);
+        self::assertSame([['index' => 1, 'reason' => 'timestamp must be a valid ISO 8601 value']], $result['rejected']);
     }
 
     public function test_it_rejects_malformed_or_invalid_top_level_bodies(): void
@@ -63,7 +62,7 @@ final class BatchLogValidatorTest extends TestCase
     {
         return new BatchLogValidator(new Repository([
             'logs' => ['ingestion' => ['max_batch_size' => $maximum, 'future_tolerance_seconds' => 300]],
-        ]), new LogEntryValidator);
+        ]));
     }
 
     /**

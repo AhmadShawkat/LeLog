@@ -9,12 +9,13 @@ final class PostgreSqlArrayEncoder
      */
     public function encode(array $values): string
     {
-        $encoded = array_map(
-            static fn (?string $value): string => $value === null
+        $encoded = [];
+
+        foreach ($values as $value) {
+            $encoded[] = $value === null
                 ? 'NULL'
-                : '"'.str_replace(['\\', '"'], ['\\\\', '\\"'], $value).'"',
-            $values,
-        );
+                : '"'.str_replace(['\\', '"'], ['\\\\', '\\"'], $value).'"';
+        }
 
         return '{'.implode(',', $encoded).'}';
     }

@@ -98,7 +98,7 @@ return [
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
             'options' => [
-                PDO::ATTR_PERSISTENT => false,
+                PDO::ATTR_PERSISTENT => (bool) env('DB_PERSISTENT', false),
             ],
         ],
 

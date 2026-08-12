@@ -2,21 +2,23 @@
 
 namespace Tests\Unit;
 
-use App\Domain\Logs\Data\ValidatedLogEntry;
-use App\Domain\Logs\Validation\LogEntryValidator;
+use App\Domain\Logs\Validation\BatchLogValidator;
 use DateTimeImmutable;
+use Illuminate\Config\Repository;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
-final class LogEntryValidatorTest extends TestCase
+final class BatchLogValidatorEntryTest extends TestCase
 {
-    private LogEntryValidator $validator;
+    private BatchLogValidator $validator;
 
     private DateTimeImmutable $now;
 
     protected function setUp(): void
     {
-        $this->validator = new LogEntryValidator;
+        $this->validator = new BatchLogValidator(new Repository([
+            'logs' => ['ingestion' => ['max_batch_size' => 1000, 'future_tolerance_seconds' => 300]],
+        ]));
         $this->now = new DateTimeImmutable('2026-08-12T12:00:00+00:00');
     }
 
@@ -35,21 +37,22 @@ final class LogEntryValidatorTest extends TestCase
             ]),
         ]);
 
-        $result = $this->validator->validate($entry, $this->now, 300);
+        $result = $this->validator->validate(json_encode(['logs' => [$entry]], JSON_THROW_ON_ERROR), $this->now);
 
-        self::assertInstanceOf(ValidatedLogEntry::class, $result);
-        self::assertSame('2026-08-12T11:59:59.123456+00:00', $result->timestamp);
-        self::assertSame('{"request_id":"abc","attempt":2,"ratio":1.5,"cached":false}', $result->attributes);
-        self::assertSame('{"request_id":"abc","attempt":"2","ratio":"1.5","cached":"false"}', $result->attributesText);
+        self::assertSame(['2026-08-12T11:59:59.123456+00:00'], $result['timestamps']);
+        self::assertSame(['{"request_id":"abc","attempt":2,"ratio":1.5,"cached":false}'], $result['attributes']);
+        self::assertSame(['{"request_id":"abc","attempt":"2","ratio":"1.5","cached":"false"}'], $result['attributes_text']);
     }
 
     public function test_attributes_are_optional_and_stay_json_objects(): void
     {
-        $result = $this->validator->validate($this->validEntry(), $this->now, 300);
+        $result = $this->validator->validate(
+            json_encode(['logs' => [$this->validEntry()]], JSON_THROW_ON_ERROR),
+            $this->now,
+        );
 
-        self::assertInstanceOf(ValidatedLogEntry::class, $result);
-        self::assertSame('{}', $result->attributes);
-        self::assertSame('{}', $result->attributesText);
+        self::assertSame(['{}'], $result['attributes']);
+        self::assertSame(['{}'], $result['attributes_text']);
     }
 
     public function test_each_invalid_entry_returns_one_reason_without_throwing(): void
@@ -68,10 +71,12 @@ final class LogEntryValidatorTest extends TestCase
         ];
 
         foreach ($cases as $name => $entry) {
-            self::assertIsString(
-                $this->validator->validate($entry, $this->now, 300),
-                "The $name case should be rejected.",
+            $result = $this->validator->validate(
+                json_encode(['logs' => [$entry]], JSON_THROW_ON_ERROR),
+                $this->now,
             );
+
+            self::assertCount(1, $result['rejected'], "The $name case should be rejected.");
         }
     }
 

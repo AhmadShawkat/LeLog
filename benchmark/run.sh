@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Keep container paths intact when this script is launched from Git Bash on Windows.
+export MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:-/scripts;/reports}"
+
 profile="${1:-quick}"
 [[ "$profile" == 'quick' || "$profile" == 'full' ]] || { echo 'Usage: bash benchmark/run.sh [quick|full]' >&2; exit 2; }
 
@@ -13,6 +16,8 @@ compose=(docker compose --project-directory "$repo" -f "$repo/compose.yaml" -f "
 result_dir="$repo/benchmark-results/$run_id"
 sampler_marker=''
 sampler_pid=''
+app_id=''
+postgres_id=''
 
 if [[ "$profile" == 'full' ]]; then
     batch_size=1000
@@ -40,7 +45,19 @@ mkdir -p "$result_dir"
 cleanup() {
     if [[ -n "$sampler_marker" ]]; then rm -f "$sampler_marker"; fi
     if [[ -n "$sampler_pid" ]]; then wait "$sampler_pid" 2>/dev/null || true; fi
+    capture_runtime_diagnostics
     "${compose[@]}" down --volumes --remove-orphans --rmi local >/dev/null 2>&1 || true
+}
+
+capture_runtime_diagnostics() {
+    if [[ -n "$app_id" ]] && docker inspect "$app_id" >/dev/null 2>&1; then
+        docker logs "$app_id" > "$result_dir/app-container.log" 2>&1 || true
+        docker inspect "$app_id" > "$result_dir/app-container-inspect.json" 2>/dev/null || true
+    fi
+    if [[ -n "$postgres_id" ]] && docker inspect "$postgres_id" >/dev/null 2>&1; then
+        docker logs "$postgres_id" > "$result_dir/postgres-container.log" 2>&1 || true
+        docker inspect "$postgres_id" > "$result_dir/postgres-container-inspect.json" 2>/dev/null || true
+    fi
 }
 trap cleanup EXIT
 
@@ -192,7 +209,10 @@ psql --command 'CHECKPOINT;'
 capture_postgres "$result_dir/postgres-before.json"
 
 start_sampler mixed
-run_k6 mixed
+mixed_k6_failed=false
+if ! run_k6 mixed; then
+    mixed_k6_failed=true
+fi
 stop_sampler
 capture_postgres "$result_dir/postgres-after.json"
 capture_durability mixed "$first_mixed_sequence" "$planned_mixed_logs" "$result_dir/mixed-durability.json"
@@ -226,5 +246,7 @@ cat > "$result_dir/final-containers.json" <<JSON
 JSON
 [[ "$app_restarts" == '0' && "$postgres_restarts" == '0' && "$app_oom" == 'false' && "$postgres_oom" == 'false' && "$health_status" == 'healthy' ]] || fail 'A benchmark container restarted, was OOM-killed, or became unhealthy.'
 
+capture_runtime_diagnostics
 "${compose[@]}" run --rm --no-deps reporter /scripts/report.php "/reports/$run_id" "$profile"
+[[ "$mixed_k6_failed" == 'false' ]] || fail 'k6 threshold gate failed.'
 echo "$profile benchmark completed successfully."

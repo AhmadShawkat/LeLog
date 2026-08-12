@@ -52,6 +52,10 @@ final class LogIngestionEndpointTest extends TestCase
                 ['index' => 2, 'reason' => 'timestamp must not be more than five minutes in the future'],
             ],
         ]);
+        self::assertMatchesRegularExpression(
+            '/json_decode;dur=\d+\.\d{3}, validation_transform;dur=\d+\.\d{3}, pg_array_encoding;dur=\d+\.\d{3}, connection_wait;dur=\d+\.\d{3}, sql_execution;dur=\d+\.\d{3}, complete_request;dur=\d+\.\d{3}/',
+            (string) $response->headers->get('Server-Timing'),
+        );
 
         self::assertSame(1, $insertStatements);
         self::assertSame(1, DB::table('logs')->count());

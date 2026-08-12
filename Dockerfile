@@ -1,6 +1,6 @@
 FROM php:8.5-fpm-alpine AS php-base
 
-RUN apk add --no-cache nginx postgresql-libs supervisor \
+RUN apk add --no-cache nginx pgbouncer postgresql-libs supervisor \
     && apk add --no-cache --virtual .build-dependencies postgresql-dev \
     && docker-php-ext-install -j1 pcntl pdo_pgsql \
     && apk del .build-dependencies \
@@ -26,6 +26,8 @@ WORKDIR /app
 
 COPY --from=vendor --chown=www-data:www-data /app /app
 COPY --chown=www-data:www-data docker/nginx.conf /etc/nginx/nginx.conf
+COPY --chown=www-data:www-data docker/pgbouncer.ini /etc/pgbouncer/pgbouncer.ini
+COPY --chown=www-data:www-data docker/pgbouncer-users.txt /etc/pgbouncer/users.txt
 COPY --chown=www-data:www-data docker/php-fpm.conf /usr/local/etc/php-fpm.d/zz-lelog.conf
 COPY --chown=www-data:www-data docker/supervisord.conf /etc/supervisord.conf
 COPY --chown=www-data:www-data docker/entrypoint.sh /usr/local/bin/lelog-entrypoint

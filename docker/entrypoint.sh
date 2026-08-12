@@ -6,8 +6,10 @@ if [ -z "${APP_KEY:-}" ]; then
     export APP_KEY
 fi
 
+DB_HOST="${DB_DIRECT_HOST:-postgres}" DB_PORT="${DB_DIRECT_PORT:-5432}" php artisan config:cache
+php artisan migrate --force --no-interaction
+php artisan config:clear
 php artisan config:cache
 php artisan route:cache
-php artisan migrate --force --no-interaction
 
 exec /usr/bin/supervisord -c /etc/supervisord.conf

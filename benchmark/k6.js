@@ -36,6 +36,12 @@ const ingestionLatency = new Trend('ingestion_latency', true);
 const queryLatency = new Trend('query_latency', true);
 const aggregationLatency = new Trend('aggregation_latency', true);
 const visibilityLag = new Trend('visibility_lag', true);
+const jsonDecodeTiming = new Trend('app_json_decode', true);
+const validationTransformTiming = new Trend('app_validation_transform', true);
+const arrayEncodingTiming = new Trend('app_pg_array_encoding', true);
+const connectionWaitTiming = new Trend('app_connection_wait', true);
+const sqlExecutionTiming = new Trend('app_sql_execution', true);
+const completeRequestTiming = new Trend('app_complete_request', true);
 
 const commonThresholds = {
     checks: ['rate==1'],
@@ -105,7 +111,7 @@ function timestampFor(sequence, isSeed) {
         return new Date(baseEpochMs + Math.floor((sequence - seedLogs) / batchSize / mixedRate) * 1000).toISOString();
     }
 
-    const span = 30 * 24 * 60 * 60 * 1000;
+    const span = 29 * 24 * 60 * 60 * 1000;
     return new Date(baseEpochMs - span + Math.floor((sequence / Math.max(seedLogs, 1)) * span)).toISOString();
 }
 
@@ -139,6 +145,7 @@ function ingest(firstSequence, isSeed, verifyVisibility) {
         timeout: '30s',
     });
     ingestionLatency.add(response.timings.duration);
+    recordApplicationTimings(response.headers['Server-Timing']);
 
     let body = null;
     try {
@@ -181,6 +188,29 @@ function ingest(firstSequence, isSeed, verifyVisibility) {
         visibilitySuccessRate.add(visible);
         visibilityLag.add(Date.now() - startedAt);
         check(visibilityResponse, { 'new log is queryable by exact sequence': () => visible });
+    }
+}
+
+function recordApplicationTimings(header) {
+    if (typeof header !== 'string') {
+        return;
+    }
+
+    const metrics = {
+        json_decode: jsonDecodeTiming,
+        validation_transform: validationTransformTiming,
+        pg_array_encoding: arrayEncodingTiming,
+        connection_wait: connectionWaitTiming,
+        sql_execution: sqlExecutionTiming,
+        complete_request: completeRequestTiming,
+    };
+
+    for (const part of header.split(',')) {
+        const match = part.trim().match(/^([a-z_]+);dur=([0-9.]+)$/);
+
+        if (match && metrics[match[1]]) {
+            metrics[match[1]].add(Number(match[2]));
+        }
     }
 }
 
