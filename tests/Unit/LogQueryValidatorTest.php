@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Domain\Logs\InvalidLogQuery;
 use App\Domain\Logs\Validation\CursorCodec;
+use App\Domain\Logs\Validation\LogFilterValidator;
 use App\Domain\Logs\Validation\LogQueryValidator;
 use Illuminate\Config\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -26,12 +27,12 @@ final class LogQueryValidatorTest extends TestCase
             'cursor' => $cursor,
         ]));
 
-        self::assertSame('checkout', $query->service);
-        self::assertSame('warn', $query->level);
-        self::assertSame('2026-08-12T08:00:00.000000Z', $query->since);
-        self::assertSame('2026-08-12T11:00:00.000000Z', $query->until);
-        self::assertSame(['request_id' => 'abc', 'attempt' => '2'], $query->attributes);
-        self::assertSame('failed', $query->message);
+        self::assertSame('checkout', $query->filters->service);
+        self::assertSame('warn', $query->filters->level);
+        self::assertSame('2026-08-12T08:00:00.000000Z', $query->filters->since);
+        self::assertSame('2026-08-12T11:00:00.000000Z', $query->filters->until);
+        self::assertSame(['request_id' => 'abc', 'attempt' => '2'], $query->filters->attributes);
+        self::assertSame('failed', $query->filters->message);
         self::assertSame(25, $query->limit);
         self::assertSame('2026-08-12T12:00:00.000000Z', $query->cursorTimestamp);
         self::assertSame(42, $query->cursorId);
@@ -75,6 +76,6 @@ final class LogQueryValidatorTest extends TestCase
     {
         return new LogQueryValidator(new Repository([
             'logs' => ['query' => ['default_limit' => 100, 'max_limit' => 1000]],
-        ]), new CursorCodec);
+        ]), new CursorCodec, new LogFilterValidator);
     }
 }

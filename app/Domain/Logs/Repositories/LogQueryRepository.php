@@ -9,48 +9,17 @@ use RuntimeException;
 
 final readonly class LogQueryRepository
 {
-    public function __construct(private DatabaseManager $database) {}
+    public function __construct(
+        private DatabaseManager $database,
+        private LogFilterSql $filterSql,
+    ) {}
 
     /**
      * @return list<array{id: int, timestamp: string, received_at: string, service: string, level: string, message: string, attributes: object}>
      */
     public function find(LogQuery $query): array
     {
-        $where = [];
-        $bindings = [];
-
-        if ($query->service !== null) {
-            $where[] = 'service = ?';
-            $bindings[] = $query->service;
-        }
-
-        if ($query->level !== null) {
-            $where[] = 'level = ?';
-            $bindings[] = $query->level;
-        }
-
-        if ($query->since !== null) {
-            $where[] = 'event_timestamp >= CAST(? AS timestamptz)';
-            $bindings[] = $query->since;
-        }
-
-        if ($query->until !== null) {
-            $where[] = 'event_timestamp < CAST(? AS timestamptz)';
-            $bindings[] = $query->until;
-        }
-
-        foreach ($query->attributes as $key => $value) {
-            $where[] = 'attributes_text @> jsonb_build_object(CAST(? AS text), CAST(? AS text))';
-            $bindings[] = $key;
-            $bindings[] = $value;
-        }
-
-        if ($query->message !== null) {
-            $where[] = <<<'SQL'
-                message ILIKE ? ESCAPE E'\\'
-                SQL;
-            $bindings[] = '%'.strtr($query->message, ['\\' => '\\\\', '%' => '\\%', '_' => '\\_']).'%';
-        }
+        ['where' => $where, 'bindings' => $bindings] = $this->filterSql->build($query->filters);
 
         if ($query->cursorTimestamp !== null && $query->cursorId !== null) {
             $where[] = <<<'SQL'
