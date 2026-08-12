@@ -1,6 +1,6 @@
 import http from 'k6/http';
 import exec from 'k6/execution';
-import { check, sleep } from 'k6';
+import { check } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 
 const phase = __ENV.BENCHMARK_PHASE;
@@ -173,29 +173,17 @@ function ingest(firstSequence, isSeed, verifyVisibility) {
 
     if (success && verifyVisibility) {
         const sequence = firstSequence + batchSize - 1;
-
-        const visibilityDeadline = Date.now() + 20000;
+        const visibilityResponse = http.get(
+            `${baseUrl}/logs?attr.benchmark_seq=${encodeURIComponent(String(sequence))}&attr.run_id=${encodeURIComponent(runId)}&limit=1`,
+            { tags: { operation: 'visibility', phase }, timeout: '20s' },
+        );
         let visible = false;
-        let visibilityResponse = null;
 
-        do {
-            visibilityResponse = http.get(
-                `${baseUrl}/logs?attr.benchmark_seq=${encodeURIComponent(String(sequence))}&attr.run_id=${encodeURIComponent(runId)}&limit=1`,
-                { tags: { operation: 'visibility', phase }, timeout: '20s' },
-            );
-
-            try {
-                visible = visibilityResponse.status === 200 && visibilityResponse.json('logs.0.attributes.benchmark_seq') === sequence;
-            } catch (_) {
-                visible = false;
-            }
-
-            if (visible) {
-                break;
-            }
-
-            sleep(0.25);
-        } while (Date.now() < visibilityDeadline);
+        try {
+            visible = visibilityResponse.status === 200 && visibilityResponse.json('logs.0.attributes.benchmark_seq') === sequence;
+        } catch (_) {
+            visible = false;
+        }
 
         visibilitySuccessRate.add(visible);
         visibilityLag.add(Date.now() - startedAt);
@@ -235,8 +223,7 @@ export function mixedBatch() {
         return;
     }
 
-    const iteration = exec.scenario.iterationInTest;
-    ingest(seedLogs + iteration * batchSize, false, iteration % 4 === 0);
+    ingest(seedLogs + exec.scenario.iterationInTest * batchSize, false, true);
 }
 
 export function filteredQuery() {

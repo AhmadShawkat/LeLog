@@ -71,20 +71,6 @@ psql_value() {
     psql --tuples-only --no-align --command "$1"
 }
 
-wait_for_drain() {
-    local deadline=$((SECONDS + 60))
-    local depth
-    while (( SECONDS < deadline )); do
-        depth="$("${compose[@]}" exec --no-TTY redis redis-cli LLEN ingest:queue 2>/dev/null | tr -d '[:space:]')"
-        if [[ "$depth" == '0' ]]; then
-            sleep 2
-            return 0
-        fi
-        sleep 1
-    done
-    return 0
-}
-
 capture_postgres() {
     local output="$1"
     psql --tuples-only --no-align --command "
@@ -217,7 +203,6 @@ postgres_id="$("${compose[@]}" ps --quiet postgres)"
 start_sampler seed
 run_k6 seed
 stop_sampler
-wait_for_drain
 capture_durability seed 0 "$seed_logs" "$result_dir/seed-durability.json"
 psql --command 'VACUUM ANALYZE logs;'
 psql --command 'CHECKPOINT;'
@@ -229,7 +214,6 @@ if ! run_k6 mixed; then
     mixed_k6_failed=true
 fi
 stop_sampler
-wait_for_drain
 capture_postgres "$result_dir/postgres-after.json"
 capture_durability mixed "$first_mixed_sequence" "$planned_mixed_logs" "$result_dir/mixed-durability.json"
 

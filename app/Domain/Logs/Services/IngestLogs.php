@@ -2,11 +2,9 @@
 
 namespace App\Domain\Logs\Services;
 
-use App\Domain\Logs\Queue\LogIngestionQueue;
 use App\Domain\Logs\Repositories\LogIngestionRepository;
 use App\Domain\Logs\Validation\BatchLogValidator;
 use App\Lifecycle\ApplicationLifecycle;
-use Illuminate\Contracts\Config\Repository;
 use RuntimeException;
 
 final readonly class IngestLogs
@@ -15,8 +13,6 @@ final readonly class IngestLogs
         private BatchLogValidator $validator,
         private LogIngestionRepository $repository,
         private ApplicationLifecycle $lifecycle,
-        private LogIngestionQueue $queue,
-        private Repository $config,
     ) {}
 
     /**
@@ -46,9 +42,7 @@ final readonly class IngestLogs
             ];
         }
 
-        $persistence = $this->lifecycle->run(fn (): array => $this->config->get('logs.ingestion.async') === true
-            ? $this->queue->enqueue($batch)
-            : $this->repository->insert($batch));
+        $persistence = $this->lifecycle->run(fn (): array => $this->repository->insert($batch));
         $inserted = $persistence['inserted'];
 
         if ($inserted !== $expected) {
