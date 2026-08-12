@@ -6,6 +6,7 @@
 .env.*
 !.env.example
 bootstrap/cache/*.php
+benchmark-results
 laravel-rebuild-blueprint
 storage/framework/*
 storage/logs/*

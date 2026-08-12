@@ -1,0 +1,16 @@
+services:
+  k6:
+    image: grafana/k6:2.0.0
+    entrypoint: ["k6"]
+    user: "0:0"
+    volumes:
+      - ./benchmark/k6.js:/scripts/benchmark.js:ro
+      - ./benchmark-results:/reports
+
+  reporter:
+    image: ${COMPOSE_PROJECT_NAME}-app
+    entrypoint: ["php"]
+    user: "0:0"
+    volumes:
+      - ./benchmark/report.php:/scripts/report.php:ro
+      - ./benchmark-results:/reports
