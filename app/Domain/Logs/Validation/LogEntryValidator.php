@@ -10,8 +10,6 @@ use stdClass;
 
 final class LogEntryValidator
 {
-    private const TIMESTAMP_PATTERN = '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/D';
-
     /**
      * @return ValidatedLogEntry|string A validated entry or its rejection reason.
      */
@@ -90,16 +88,9 @@ final class LogEntryValidator
 
     private function timestamp(mixed $value): DateTimeImmutable|string
     {
-        if (! is_string($value) || preg_match(self::TIMESTAMP_PATTERN, $value) !== 1) {
-            return 'timestamp must be a valid ISO 8601 value';
-        }
+        $timestamp = Iso8601Timestamp::parse($value);
 
-        $normalized = str_ends_with($value, 'Z') ? substr($value, 0, -1).'+00:00' : $value;
-        $format = str_contains($normalized, '.') ? '!Y-m-d\TH:i:s.uP' : '!Y-m-d\TH:i:sP';
-        $timestamp = DateTimeImmutable::createFromFormat($format, $normalized);
-        $errors = DateTimeImmutable::getLastErrors();
-
-        if ($timestamp === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+        if ($timestamp === null) {
             return 'timestamp must be a valid ISO 8601 value';
         }
 

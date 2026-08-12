@@ -9,3 +9,4 @@ Route::get('/api/foundation', fn (): array => [
 ]);
 
 Route::post('/logs', [LogController::class, 'store']);
+Route::get('/logs', [LogController::class, 'index']);
