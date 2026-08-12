@@ -15,7 +15,7 @@ function readJson(string $path): array
 {
     $decoded = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
 
-    if (!is_array($decoded)) {
+    if (! is_array($decoded)) {
         throw new RuntimeException("Expected a JSON object in $path");
     }
 
@@ -43,7 +43,7 @@ function metric(array $summary, string $name, string $value, int|float $default 
 
 function bytes(string $usage): int
 {
-    if (!preg_match('/^([0-9.]+)([KMG]iB)/', $usage, $matches)) {
+    if (! preg_match('/^([0-9.]+)([KMG]iB)/', $usage, $matches)) {
         return 0;
     }
 
@@ -211,7 +211,7 @@ $correctnessPass = $exactSeedSequences
     && $attempted === $successful
     && $failed === 0
     && $dropped === 0;
-$resultLabel = !$correctnessPass
+$resultLabel = ! $correctnessPass
     ? 'FAIL'
     : ($profile === 'quick'
         ? 'SMOKE PASS (not a Step 11 performance result)'
@@ -248,12 +248,12 @@ printf("Maximum PostgreSQL CPU: %s\n", $postgresMaximumCpu === null ? 'not captu
 printf("\nRESULT: %s\n", $resultLabel);
 printf("Full JSON report: benchmark-results/%s/report.json\n", $metadata['run_id']);
 
-if (!$correctnessPass) {
+if (! $correctnessPass) {
     fwrite(STDERR, "Benchmark correctness gate failed.\n");
     exit(1);
 }
 
-if ($profile === 'full' && !$performancePass) {
+if ($profile === 'full' && ! $performancePass) {
     fwrite(STDERR, "Benchmark performance gate failed.\n");
     exit(1);
 }

@@ -81,6 +81,7 @@ final readonly class BatchLogValidator
         foreach ($body->logs as $index => $entry) {
             if (! $entry instanceof stdClass) {
                 $rejected[] = ['index' => $index, 'reason' => 'entry must be an object'];
+
                 continue;
             }
 
@@ -96,6 +97,7 @@ final readonly class BatchLogValidator
 
             if ($unsupportedProperty) {
                 $rejected[] = ['index' => $index, 'reason' => 'entry contains an unsupported property'];
+
                 continue;
             }
 
@@ -117,11 +119,13 @@ final readonly class BatchLogValidator
 
             if ($timestamp === null || $timestampCanonical === null) {
                 $rejected[] = ['index' => $index, 'reason' => 'timestamp must be a valid ISO 8601 value'];
+
                 continue;
             }
 
             if ($timestamp > $futureCutoff) {
                 $rejected[] = ['index' => $index, 'reason' => 'timestamp must not be more than five minutes in the future'];
+
                 continue;
             }
 
@@ -129,6 +133,7 @@ final readonly class BatchLogValidator
 
             if (! is_string($level) || ! isset(self::ALLOWED_LEVELS[$level])) {
                 $rejected[] = ['index' => $index, 'reason' => 'level must be one of debug, info, warn, or error'];
+
                 continue;
             }
 
@@ -136,6 +141,7 @@ final readonly class BatchLogValidator
 
             if (! is_string($service) || $service === '') {
                 $rejected[] = ['index' => $index, 'reason' => 'service must be a non-empty string'];
+
                 continue;
             }
 
@@ -143,6 +149,7 @@ final readonly class BatchLogValidator
 
             if (! is_string($message) || $message === '') {
                 $rejected[] = ['index' => $index, 'reason' => 'message must be a non-empty string'];
+
                 continue;
             }
 
@@ -150,6 +157,7 @@ final readonly class BatchLogValidator
 
             if (! $entryAttributes instanceof stdClass) {
                 $rejected[] = ['index' => $index, 'reason' => 'attributes must be a flat object'];
+
                 continue;
             }
 
@@ -167,6 +175,7 @@ final readonly class BatchLogValidator
 
             if ($invalidAttribute !== null) {
                 $rejected[] = ['index' => $index, 'reason' => $invalidAttribute];
+
                 continue;
             }
 
@@ -175,6 +184,7 @@ final readonly class BatchLogValidator
                 $encodedAttributesText = json_encode($normalizedAttributes, $jsonFlags);
             } catch (JsonException) {
                 $rejected[] = ['index' => $index, 'reason' => 'attributes contain an invalid value'];
+
                 continue;
             }
 
