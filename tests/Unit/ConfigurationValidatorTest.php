@@ -41,6 +41,17 @@ final class ConfigurationValidatorTest extends TestCase
         (new ConfigurationValidator($configuration))->validate();
     }
 
+    public function test_retention_interval_must_be_a_supported_minute_multiple(): void
+    {
+        $configuration = $this->validConfiguration();
+        $configuration->set('logs.retention.interval_seconds', 61);
+
+        $this->expectException(InvalidApplicationConfiguration::class);
+        $this->expectExceptionMessage('logs.retention.interval_seconds must be a multiple of 60');
+
+        (new ConfigurationValidator($configuration))->validate();
+    }
+
     private function validConfiguration(): Repository
     {
         return new Repository([

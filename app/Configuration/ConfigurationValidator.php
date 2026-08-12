@@ -18,7 +18,7 @@ final readonly class ConfigurationValidator
         $defaultLimit = $this->validateInteger('logs.query.default_limit', 1, 1000, $errors);
         $maximumLimit = $this->validateInteger('logs.query.max_limit', 1, 1000, $errors);
         $this->validateInteger('logs.retention.days', 1, 3650, $errors);
-        $this->validateInteger('logs.retention.interval_seconds', 1, 86400, $errors);
+        $retentionInterval = $this->validateInteger('logs.retention.interval_seconds', 60, 86400, $errors);
         $this->validateInteger('logs.retention.batch_size', 1, 100000, $errors);
         $this->validateInteger('logs.retention.max_batches_per_run', 1, 1000, $errors);
         $this->validateInteger('logs.runtime.database_worker_limit', 1, 4, $errors);
@@ -26,6 +26,10 @@ final readonly class ConfigurationValidator
 
         if ($defaultLimit !== null && $maximumLimit !== null && $defaultLimit > $maximumLimit) {
             $errors[] = 'logs.query.default_limit must not exceed logs.query.max_limit';
+        }
+
+        if ($retentionInterval !== null && $retentionInterval % 60 !== 0) {
+            $errors[] = 'logs.retention.interval_seconds must be a multiple of 60';
         }
 
         if ($this->config->get('app.env') === 'production' && $this->config->get('app.debug') !== false) {

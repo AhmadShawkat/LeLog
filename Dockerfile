@@ -2,7 +2,7 @@ FROM php:8.5-fpm-alpine AS php-base
 
 RUN apk add --no-cache nginx postgresql-libs supervisor \
     && apk add --no-cache --virtual .build-dependencies postgresql-dev \
-    && docker-php-ext-install -j1 pdo_pgsql \
+    && docker-php-ext-install -j1 pcntl pdo_pgsql \
     && apk del .build-dependencies \
     && rm -f /etc/nginx/http.d/default.conf /usr/local/etc/php-fpm.d/www.conf.default
 

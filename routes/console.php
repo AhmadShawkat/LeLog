@@ -1,3 +1,9 @@
 <?php
 
-// Application commands are added by the step that owns their behavior.
+use Illuminate\Support\Facades\Schedule;
+
+Schedule::command('logs:retain')
+    ->everyMinute()
+    ->when(static fn (): bool => time() % (int) config('logs.retention.interval_seconds') < 60)
+    ->name('logs:retain')
+    ->withoutOverlapping(10);
