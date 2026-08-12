@@ -65,7 +65,9 @@ base_url="http://127.0.0.1:${published_port##*:}"
 [[ "$(docker inspect --format '{{.HostConfig.Memory}}' "$postgres_id")" == '1073741824' ]] || fail 'PostgreSQL memory limit is not 1 GiB.'
 [[ "$("${compose[@]}" exec --no-TTY app id -u)" != '0' ]] || fail 'The application container is running as root.'
 [[ "$("${compose[@]}" exec --no-TTY postgres psql --username lelog --dbname lelog --tuples-only --no-align \
-    --command "SELECT to_regclass('public.logs') IS NOT NULL AND (SELECT count(*) FROM migrations) = 2")" == 't' ]] \
+    --command "SELECT to_regclass('public.logs') IS NOT NULL
+        AND (SELECT count(*) FROM migrations) = 3
+        AND (SELECT reloptions @> ARRAY['autovacuum_analyze_scale_factor=0.40'] FROM pg_class WHERE oid = 'public.logs'::regclass)")" == 't' ]] \
     || fail 'Fresh migrations did not create the expected schema.'
 
 request GET /health 200
