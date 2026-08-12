@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Configuration\ConfigurationValidator;
+use App\Lifecycle\ApplicationLifecycle;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,14 +13,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(ApplicationLifecycle::class);
     }
 
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
+    public function boot(ConfigurationValidator $configuration): void
     {
-        //
+        $configuration->validate();
     }
 }
