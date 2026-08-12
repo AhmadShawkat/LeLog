@@ -42,3 +42,13 @@ jobs:
 
       - run: composer validate --strict
       - run: composer quality
+
+  fresh-container-smoke:
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: bash .github/scripts/fresh-container-smoke.sh

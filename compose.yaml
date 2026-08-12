@@ -21,7 +21,7 @@ services:
       LOGS_RETENTION_MAX_BATCHES: "10"
       LOGS_DATABASE_WORKER_LIMIT: "4"
     ports:
-      - "8080:8080"
+      - "${APP_PORT:-8080}:8080"
     depends_on:
       postgres:
         condition: service_healthy
