@@ -12,7 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
-        web: __DIR__.'/../routes/web.php',
+        then: static function (): void {
+            Route::get('/health', [HealthController::class, 'show']);
+        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         //
