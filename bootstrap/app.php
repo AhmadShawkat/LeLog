@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         api: __DIR__.'/../routes/api.php',
+        apiPrefix: '',
         commands: __DIR__.'/../routes/console.php',
         then: static function (): void {
             Route::get('/health', [HealthController::class, 'show']);
@@ -21,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request, Throwable $exception): bool => $request->is('api/*') || $request->expectsJson(),
+            fn (Request $request, Throwable $exception): bool => $request->is('api/*', 'logs', 'logs/*') || $request->expectsJson(),
         );
         $exceptions->respond(new ApiExceptionResponse);
     })->create();

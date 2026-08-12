@@ -11,7 +11,7 @@ final readonly class ApiExceptionResponse
 {
     public function __invoke(Response $response, Throwable $exception, Request $request): Response
     {
-        if (! $request->is('api/*') || $response->getStatusCode() < 400) {
+        if (! $request->is('api/*', 'logs', 'logs/*') || $response->getStatusCode() < 400) {
             return $response;
         }
 
