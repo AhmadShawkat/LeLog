@@ -8,8 +8,8 @@ services:
       APP_DEBUG: "false"
       APP_URL: http://localhost:8080
       DB_CONNECTION: pgsql
-      DB_HOST: 127.0.0.1
-      DB_PORT: "6432"
+      DB_HOST: postgres
+      DB_PORT: "5432"
       DB_DIRECT_HOST: postgres
       DB_DIRECT_PORT: "5432"
       DB_DATABASE: lelog
@@ -58,9 +58,11 @@ services:
       - -c
       - wal_buffers=64MB
       - -c
-      - max_wal_size=4GB
+      - gin_pending_list_limit=32MB
       - -c
-      - checkpoint_timeout=15min
+      - max_wal_size=16GB
+      - -c
+      - checkpoint_timeout=60min
       - -c
       - checkpoint_completion_target=0.9
       - -c
