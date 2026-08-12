@@ -2,7 +2,6 @@ services:
   app:
     build:
       context: .
-    image: lelog:latest
     environment:
       APP_NAME: LeLog
       APP_ENV: production
@@ -34,6 +33,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      worker:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8080/health"]
       interval: 5s
@@ -129,7 +130,6 @@ services:
   worker:
     build:
       context: .
-    image: lelog:latest
     entrypoint: ["lelog-worker-entrypoint"]
     environment:
       APP_NAME: LeLog
@@ -151,7 +151,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    cpus: 0.5
+    cpus: 1.0
     mem_limit: 256m
     stop_grace_period: 35s
 
