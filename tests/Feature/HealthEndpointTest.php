@@ -41,18 +41,18 @@ final class HealthEndpointTest extends TestCase
 
     public function test_health_is_unavailable_when_postgresql_cannot_be_reached(): void
     {
-        $originalPort = config('database.connections.pgsql.port');
+        $originalPort = config('database.connections.pgsql_health.port');
 
         try {
-            config()->set('database.connections.pgsql.port', 1);
-            DB::purge();
+            config()->set('database.connections.pgsql_health.port', 1);
+            DB::purge('pgsql_health');
 
             $this->getJson('/health')
                 ->assertServiceUnavailable()
                 ->assertExactJson(['status' => 'unhealthy']);
         } finally {
-            config()->set('database.connections.pgsql.port', $originalPort);
-            DB::purge();
+            config()->set('database.connections.pgsql_health.port', $originalPort);
+            DB::purge('pgsql_health');
         }
     }
 }
