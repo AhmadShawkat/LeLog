@@ -1,0 +1,10 @@
+.git
+.github
+.idea
+.laravel-scaffold
+.env
+.env.*
+!.env.example
+laravel-rebuild-blueprint
+storage/logs/*
+vendor
