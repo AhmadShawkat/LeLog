@@ -2,6 +2,7 @@ services:
   app:
     build:
       context: .
+    image: lelog:latest
     environment:
       APP_NAME: LeLog
       APP_ENV: production
@@ -16,6 +17,8 @@ services:
       DB_USERNAME: lelog
       DB_PASSWORD: lelog
       DB_PERSISTENT: "true"
+      REDIS_HOST: redis
+      LOGS_INGEST_ASYNC: "true"
       LOG_CHANNEL: stderr
       LOG_LEVEL: warning
       CACHE_STORE: array
@@ -28,6 +31,8 @@ services:
       - "${APP_PORT:-8080}:8080"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8080/health"]
@@ -85,5 +90,59 @@ services:
     mem_limit: 1g
     stop_grace_period: 30s
 
+  redis:
+    image: redis:7-alpine
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory
+      - 128mb
+      - --maxmemory-policy
+      - noeviction
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    volumes:
+      - redis-data:/data
+    cpus: 0.3
+    mem_limit: 160m
+    stop_grace_period: 10s
+
+  worker:
+    build:
+      context: .
+    image: lelog:latest
+    entrypoint: ["lelog-worker-entrypoint"]
+    environment:
+      APP_NAME: LeLog
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
+      DB_DIRECT_HOST: postgres
+      DB_DIRECT_PORT: "5432"
+      DB_DATABASE: lelog
+      DB_USERNAME: lelog
+      DB_PASSWORD: lelog
+      REDIS_HOST: redis
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: warning
+      CACHE_STORE: array
+      LOGS_INGEST_ASYNC: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    cpus: 0.5
+    mem_limit: 256m
+    stop_grace_period: 35s
+
 volumes:
   postgres-data:
+  redis-data:

@@ -1,8 +1,10 @@
 FROM php:8.5-fpm-alpine AS php-base
 
 RUN apk add --no-cache nginx pgbouncer postgresql-libs supervisor \
-    && apk add --no-cache --virtual .build-dependencies postgresql-dev \
+    && apk add --no-cache --virtual .build-dependencies postgresql-dev $PHPIZE_DEPS \
     && docker-php-ext-install -j1 pcntl pdo_pgsql \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
     && apk del .build-dependencies \
     && rm -f /etc/nginx/http.d/default.conf /usr/local/etc/php-fpm.d/www.conf.default
 
@@ -31,8 +33,9 @@ COPY --chown=www-data:www-data docker/pgbouncer-users.txt /etc/pgbouncer/users.t
 COPY --chown=www-data:www-data docker/php-fpm.conf /usr/local/etc/php-fpm.d/zz-lelog.conf
 COPY --chown=www-data:www-data docker/supervisord.conf /etc/supervisord.conf
 COPY --chown=www-data:www-data docker/entrypoint.sh /usr/local/bin/lelog-entrypoint
+COPY --chown=www-data:www-data docker/worker-entrypoint.sh /usr/local/bin/lelog-worker-entrypoint
 
-RUN chmod 0555 /usr/local/bin/lelog-entrypoint \
+RUN chmod 0555 /usr/local/bin/lelog-entrypoint /usr/local/bin/lelog-worker-entrypoint \
     && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs \
     && chown -R www-data:www-data bootstrap/cache storage /var/lib/nginx /var/log/nginx
 

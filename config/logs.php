@@ -4,6 +4,7 @@ return [
     'ingestion' => [
         'max_batch_size' => (int) env('LOGS_MAX_BATCH_SIZE', 1000),
         'future_tolerance_seconds' => (int) env('LOGS_FUTURE_TOLERANCE_SECONDS', 300),
+        'async' => (bool) env('LOGS_INGEST_ASYNC', false),
     ],
 
     'query' => [
