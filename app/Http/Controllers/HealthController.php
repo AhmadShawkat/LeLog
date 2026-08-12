@@ -19,10 +19,17 @@ class HealthController extends Controller
 
             $migrationFiles = $migrator->getMigrationFiles(database_path('migrations'));
             $connection = DB::connection('pgsql_health');
-            $ranMigrations = array_map(
-                static fn (object $row): string => (string) $row->migration,
-                $connection->select('SELECT migration FROM migrations'),
-            );
+            $ranMigrations = [];
+
+            foreach ($connection->select('SELECT migration FROM migrations') as $row) {
+                $migration = ((array) $row)['migration'] ?? null;
+
+                if (! is_string($migration)) {
+                    return $this->unhealthy();
+                }
+
+                $ranMigrations[] = $migration;
+            }
 
             if (array_diff(array_keys($migrationFiles), $ranMigrations) !== []) {
                 return $this->unhealthy();
