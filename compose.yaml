@@ -1,0 +1,81 @@
+services:
+  app:
+    build:
+      context: .
+    environment:
+      APP_NAME: LeLog
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8080
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_DATABASE: lelog
+      DB_USERNAME: lelog
+      DB_PASSWORD: lelog
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: warning
+      LOGS_DATABASE_WORKER_LIMIT: "4"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
+    cpus: 0.5
+    mem_limit: 256m
+    stop_grace_period: 35s
+
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: lelog
+      POSTGRES_USER: lelog
+      POSTGRES_PASSWORD: lelog
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - work_mem=32MB
+      - -c
+      - max_wal_size=4GB
+      - -c
+      - checkpoint_timeout=15min
+      - -c
+      - wal_compression=on
+      - -c
+      - jit=off
+      - -c
+      - autovacuum_vacuum_scale_factor=0.05
+      - -c
+      - autovacuum_analyze_scale_factor=0.02
+      - -c
+      - autovacuum_vacuum_cost_limit=500
+      - -c
+      - autovacuum_vacuum_cost_delay=2ms
+      - -c
+      - fsync=on
+      - -c
+      - synchronous_commit=on
+      - -c
+      - full_page_writes=on
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lelog -d lelog"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    cpus: 1.0
+    mem_limit: 1g
+    stop_grace_period: 30s
+
+volumes:
+  postgres-data:
