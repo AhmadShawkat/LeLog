@@ -31,6 +31,7 @@ COPY --chown=www-data:www-data docker/nginx.conf /etc/nginx/nginx.conf
 COPY --chown=www-data:www-data docker/pgbouncer.ini /etc/pgbouncer/pgbouncer.ini
 COPY --chown=www-data:www-data docker/pgbouncer-users.txt /etc/pgbouncer/users.txt
 COPY --chown=www-data:www-data docker/php-fpm.conf /usr/local/etc/php-fpm.d/zz-lelog.conf
+COPY --chown=www-data:www-data docker/opcache.ini /usr/local/etc/php/conf.d/zz-opcache.ini
 COPY --chown=www-data:www-data docker/supervisord.conf /etc/supervisord.conf
 COPY --chown=www-data:www-data docker/entrypoint.sh /usr/local/bin/lelog-entrypoint
 COPY --chown=www-data:www-data docker/worker-entrypoint.sh /usr/local/bin/lelog-worker-entrypoint
