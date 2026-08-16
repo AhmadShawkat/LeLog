@@ -19,7 +19,7 @@ services:
       LOG_CHANNEL: stderr
       LOG_LEVEL: warning
       CACHE_STORE: array
-      LOGS_RETENTION_DAYS: "30"
+      LOGS_RETENTION_DAYS: "90"
       LOGS_RETENTION_INTERVAL_SECONDS: "60"
       LOGS_RETENTION_BATCH_SIZE: "10000"
       LOGS_RETENTION_MAX_BATCHES: "10"
@@ -84,7 +84,7 @@ services:
       - -c
       - fsync=on
       - -c
-      - synchronous_commit=off
+      - synchronous_commit=on
       - -c
       - full_page_writes=on
     healthcheck:

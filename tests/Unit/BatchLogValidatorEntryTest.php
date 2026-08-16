@@ -41,7 +41,7 @@ final class BatchLogValidatorEntryTest extends TestCase
 
         self::assertSame(['2026-08-12T11:59:59.123456+00:00'], $result['timestamps']);
         self::assertSame(['{"request_id":"abc","attempt":2,"ratio":1.5,"cached":false}'], $result['attributes']);
-        self::assertSame(['{"request_id":"abc","attempt":"2","ratio":"1.5","cached":"false"}'], $result['attributes_text']);
+        self::assertSame(['"request_id"=>"abc","attempt"=>"2","ratio"=>"1.5","cached"=>"false"'], $result['attributes_text']);
     }
 
     public function test_attributes_are_optional_and_stay_json_objects(): void
@@ -52,7 +52,25 @@ final class BatchLogValidatorEntryTest extends TestCase
         );
 
         self::assertSame(['{}'], $result['attributes']);
-        self::assertSame(['{}'], $result['attributes_text']);
+        self::assertSame([''], $result['attributes_text']);
+    }
+
+    public function test_hstore_normalization_quotes_special_characters_and_the_null_string(): void
+    {
+        $entry = $this->validEntry(['attributes' => $this->object([
+            'quoted"key' => 'comma,value',
+            'slash\\key' => 'say "hello" \\ safely',
+            'null_word' => 'NULL',
+        ])]);
+
+        $result = $this->validator->validate(
+            json_encode(['logs' => [$entry]], JSON_THROW_ON_ERROR),
+            $this->now,
+        );
+
+        self::assertSame([
+            '"quoted\\"key"=>"comma,value","slash\\\\key"=>"say \\"hello\\" \\\\ safely","null_word"=>"NULL"',
+        ], $result['attributes_text']);
     }
 
     public function test_each_invalid_entry_returns_one_reason_without_throwing(): void

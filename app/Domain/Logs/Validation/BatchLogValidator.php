@@ -161,7 +161,7 @@ final readonly class BatchLogValidator
                 continue;
             }
 
-            $normalizedAttributes = new stdClass;
+            $normalizedAttributes = [];
             $invalidAttribute = null;
 
             foreach (get_object_vars($entryAttributes) as $key => $value) {
@@ -170,7 +170,7 @@ final readonly class BatchLogValidator
                     break;
                 }
 
-                $normalizedAttributes->{$key} = is_bool($value) ? ($value ? 'true' : 'false') : (string) $value;
+                $normalizedAttributes[$key] = is_bool($value) ? ($value ? 'true' : 'false') : (string) $value;
             }
 
             if ($invalidAttribute !== null) {
@@ -181,7 +181,7 @@ final readonly class BatchLogValidator
 
             try {
                 $encodedAttributes = json_encode($entryAttributes, $jsonFlags);
-                $encodedAttributesText = json_encode($normalizedAttributes, $jsonFlags);
+                $encodedAttributesText = $this->encodeHstore($normalizedAttributes);
             } catch (JsonException) {
                 $rejected[] = ['index' => $index, 'reason' => 'attributes contain an invalid value'];
 
@@ -209,5 +209,24 @@ final readonly class BatchLogValidator
                 'validation_transform_ms' => (hrtime(true) - $validationStarted) / 1_000_000,
             ],
         ];
+    }
+
+    /**
+     * @param  array<string, string>  $attributes
+     */
+    private function encodeHstore(array $attributes): string
+    {
+        $pairs = [];
+
+        foreach ($attributes as $key => $value) {
+            $pairs[] = $this->quoteHstore($key).'=>'.$this->quoteHstore($value);
+        }
+
+        return implode(',', $pairs);
+    }
+
+    private function quoteHstore(string $value): string
+    {
+        return '"'.str_replace(['\\', '"'], ['\\\\', '\\"'], $value).'"';
     }
 }

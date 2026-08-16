@@ -66,7 +66,10 @@ base_url="http://127.0.0.1:${published_port##*:}"
 [[ "$("${compose[@]}" exec --no-TTY app id -u)" != '0' ]] || fail 'The application container is running as root.'
 [[ "$("${compose[@]}" exec --no-TTY postgres psql --username lelog --dbname lelog --tuples-only --no-align \
     --command "SELECT to_regclass('public.logs') IS NOT NULL
-        AND (SELECT count(*) FROM migrations) = 3
+        AND (SELECT count(*) FROM migrations) = 6
+        AND EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'hstore')
+        AND (SELECT format_type(atttypid, atttypmod) = 'hstore' FROM pg_attribute WHERE attrelid = 'public.logs'::regclass AND attname = 'attributes_text')
+        AND (SELECT reloptions @> ARRAY['fastupdate=on', 'gin_pending_list_limit=4096'] FROM pg_class WHERE oid = 'public.logs_attributes_text_gin_idx'::regclass)
         AND (SELECT reloptions @> ARRAY['autovacuum_analyze_scale_factor=0.40'] FROM pg_class WHERE oid = 'public.logs'::regclass)")" == 't' ]] \
     || fail 'Fresh migrations did not create the expected schema.'
 

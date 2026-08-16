@@ -114,7 +114,17 @@ final class LogAggregationEndpointTest extends TestCase
 
         DB::insert(<<<'SQL'
             INSERT INTO logs (event_timestamp, service, level, message, attributes, attributes_text)
-            VALUES (CAST(? AS timestamptz), ?, ?, ?, CAST(? AS jsonb), CAST(? AS jsonb))
+            VALUES (
+                CAST(? AS timestamptz),
+                ?,
+                ?,
+                ?,
+                CAST(? AS jsonb),
+                COALESCE(
+                    (SELECT hstore(array_agg(entry.key), array_agg(entry.value)) FROM jsonb_each_text(CAST(? AS jsonb)) AS entry),
+                    ''::hstore
+                )
+            )
             SQL, [
             $timestamp,
             $service,

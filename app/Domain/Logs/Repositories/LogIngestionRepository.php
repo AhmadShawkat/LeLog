@@ -24,7 +24,7 @@ final readonly class LogIngestionRepository
             CAST(? AS text[]),
             CAST(? AS text[]),
             CAST(? AS jsonb[]),
-            CAST(? AS jsonb[])
+            CAST(? AS hstore[])
         )
         SQL;
 

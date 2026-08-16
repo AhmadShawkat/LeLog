@@ -82,6 +82,16 @@ capture_postgres() {
             'pg_stat_checkpointer', (SELECT to_jsonb(s) FROM pg_stat_checkpointer AS s),
             'settings', (SELECT jsonb_object_agg(name, setting) FROM pg_settings WHERE name IN ('fsync','synchronous_commit','full_page_writes','track_io_timing','shared_buffers','work_mem','max_connections')),
             'indexes', (SELECT jsonb_agg(jsonb_build_object('name', c.relname, 'definition', pg_get_indexdef(c.oid), 'options', c.reloptions, 'size_bytes', pg_relation_size(c.oid)) ORDER BY c.relname) FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid WHERE i.indrelid = 'logs'::regclass),
+            'gin_pending', (
+                SELECT jsonb_object_agg(index_name, pending)
+                FROM (
+                    SELECT c.relname AS index_name, (SELECT to_jsonb(stats) FROM pgstatginindex(c.oid) AS stats) AS pending
+                    FROM pg_index i
+                    JOIN pg_class c ON c.oid = i.indexrelid
+                    JOIN pg_am am ON am.oid = c.relam
+                    WHERE i.indrelid = 'logs'::regclass AND am.amname = 'gin'
+                ) AS gin_indexes
+            ),
             'relations', jsonb_build_object('table_bytes', pg_relation_size('logs'), 'indexes_bytes', pg_indexes_size('logs'), 'total_bytes', pg_total_relation_size('logs'))
         ));" > "$output"
 }
@@ -137,10 +147,10 @@ capture_durability() {
     local last=$((first + expected - 1))
     psql --tuples-only --no-align --set=run_id="$run_id" --set=phase="$phase" --set=first="$first" --set=last="$last" > "$output" <<'SQL'
         WITH selected AS (
-            SELECT (attributes_text ->> 'benchmark_seq')::bigint AS sequence, received_at
+            SELECT (attributes_text -> 'benchmark_seq')::bigint AS sequence, received_at
             FROM logs
-            WHERE attributes_text @> jsonb_build_object('run_id', :'run_id', 'phase', :'phase')
-              AND (attributes_text ->> 'benchmark_seq')::bigint BETWEEN :'first'::bigint AND :'last'::bigint
+            WHERE attributes_text @> hstore(ARRAY['run_id', 'phase'], ARRAY[:'run_id', :'phase'])
+              AND (attributes_text -> 'benchmark_seq')::bigint BETWEEN :'first'::bigint AND :'last'::bigint
         ), bounds AS (
             SELECT count(*) AS rows, count(DISTINCT sequence) AS distinct_sequences,
                    count(*) - count(DISTINCT sequence) AS duplicate_sequences,
@@ -199,6 +209,7 @@ postgres_id="$("${compose[@]}" ps --quiet postgres)"
 [[ "$(docker inspect --format '{{.HostConfig.NanoCpus}}' "$postgres_id")" == '1000000000' ]] || fail 'PostgreSQL CPU limit is not 1 CPU.'
 [[ "$(docker inspect --format '{{.HostConfig.Memory}}' "$postgres_id")" == '1073741824' ]] || fail 'PostgreSQL memory limit is not 1 GiB.'
 [[ "$(psql_value 'SELECT count(*) FROM logs;' | tr -d '[:space:]')" == '0' ]] || fail 'Benchmark database was not empty.'
+psql --command 'CREATE EXTENSION IF NOT EXISTS pgstattuple;'
 
 start_sampler seed
 run_k6 seed
@@ -222,7 +233,7 @@ psql --tuples-only --no-align --set=run_id="$run_id" --set=since="$(date -u -d "
     SELECT id, event_timestamp, received_at, service, level, message, attributes
     FROM logs
     WHERE service = 'checkout' AND level = 'debug'
-      AND attributes_text @> jsonb_build_object('run_id', :'run_id')
+      AND attributes_text @> hstore('run_id', :'run_id')
       AND message ILIKE '%benchmark%'
     ORDER BY event_timestamp DESC, id DESC LIMIT 100;
 SQL
@@ -232,7 +243,7 @@ psql --tuples-only --no-align --set=run_id="$run_id" --set=since="$(date -u -d "
     SELECT date_bin(INTERVAL '1 hour', event_timestamp, TIMESTAMPTZ '2001-01-01 00:00:00+00'), service, count(*)
     FROM logs
     WHERE event_timestamp >= :'since'::timestamptz AND event_timestamp < :'until'::timestamptz
-      AND attributes_text @> jsonb_build_object('run_id', :'run_id')
+      AND attributes_text @> hstore('run_id', :'run_id')
     GROUP BY 1, 2 ORDER BY 1, 2;
 SQL
 

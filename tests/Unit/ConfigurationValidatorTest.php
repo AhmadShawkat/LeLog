@@ -52,6 +52,17 @@ final class ConfigurationValidatorTest extends TestCase
         (new ConfigurationValidator($configuration))->validate();
     }
 
+    public function test_retention_window_must_remain_longer_than_the_benchmark_dataset(): void
+    {
+        $configuration = $this->validConfiguration();
+        $configuration->set('logs.retention.days', 30);
+
+        $this->expectException(InvalidApplicationConfiguration::class);
+        $this->expectExceptionMessage('logs.retention.days must be an integer between 90 and 3650');
+
+        (new ConfigurationValidator($configuration))->validate();
+    }
+
     private function validConfiguration(): Repository
     {
         return new Repository([
@@ -69,7 +80,7 @@ final class ConfigurationValidatorTest extends TestCase
                     'max_limit' => 1000,
                 ],
                 'retention' => [
-                    'days' => 30,
+                    'days' => 90,
                     'interval_seconds' => 60,
                     'batch_size' => 10000,
                     'max_batches_per_run' => 10,

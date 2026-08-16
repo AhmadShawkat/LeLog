@@ -17,7 +17,7 @@ final readonly class ConfigurationValidator
         $this->validateInteger('logs.ingestion.future_tolerance_seconds', 0, 300, $errors);
         $defaultLimit = $this->validateInteger('logs.query.default_limit', 1, 1000, $errors);
         $maximumLimit = $this->validateInteger('logs.query.max_limit', 1, 1000, $errors);
-        $this->validateInteger('logs.retention.days', 1, 3650, $errors);
+        $this->validateInteger('logs.retention.days', 90, 3650, $errors);
         $retentionInterval = $this->validateInteger('logs.retention.interval_seconds', 60, 86400, $errors);
         $this->validateInteger('logs.retention.batch_size', 1, 100000, $errors);
         $this->validateInteger('logs.retention.max_batches_per_run', 1, 1000, $errors);

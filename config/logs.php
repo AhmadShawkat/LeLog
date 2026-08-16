@@ -12,7 +12,7 @@ return [
     ],
 
     'retention' => [
-        'days' => (int) env('LOGS_RETENTION_DAYS', 30),
+        'days' => (int) env('LOGS_RETENTION_DAYS', 90),
         'interval_seconds' => (int) env('LOGS_RETENTION_INTERVAL_SECONDS', 60),
         'batch_size' => (int) env('LOGS_RETENTION_BATCH_SIZE', 10000),
         'max_batches_per_run' => (int) env('LOGS_RETENTION_MAX_BATCHES', 10),

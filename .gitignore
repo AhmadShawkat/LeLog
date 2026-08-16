@@ -1,4 +1,5 @@
 *.md
+!enhancments.md
 *.log
 .DS_Store
 .env

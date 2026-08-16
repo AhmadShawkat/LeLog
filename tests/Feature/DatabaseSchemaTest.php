@@ -26,6 +26,7 @@ final class DatabaseSchemaTest extends TestCase
     {
         self::assertSame('pgsql', DB::connection()->getDriverName());
         self::assertTrue(DB::table('pg_extension')->where('extname', 'pg_trgm')->exists());
+        self::assertTrue(DB::table('pg_extension')->where('extname', 'hstore')->exists());
 
         $columns = DB::select(<<<'SQL'
             SELECT column_name, data_type, is_nullable, column_default, identity_generation
@@ -42,7 +43,7 @@ final class DatabaseSchemaTest extends TestCase
             ['level', 'text', 'NO', null, null],
             ['message', 'text', 'NO', null, null],
             ['attributes', 'jsonb', 'NO', "'{}'::jsonb", null],
-            ['attributes_text', 'jsonb', 'NO', "'{}'::jsonb", null],
+            ['attributes_text', 'USER-DEFINED', 'NO', "''::hstore", null],
         ], array_map(static function (object $column): array {
             $values = (array) $column;
 
@@ -66,7 +67,6 @@ final class DatabaseSchemaTest extends TestCase
 
         self::assertSame([
             'logs_attributes_object' => "CHECK ((jsonb_typeof(attributes) = 'object'::text))",
-            'logs_attributes_text_object' => "CHECK ((jsonb_typeof(attributes_text) = 'object'::text))",
             'logs_pkey' => 'PRIMARY KEY (id)',
         ], $constraints);
 
@@ -95,9 +95,12 @@ final class DatabaseSchemaTest extends TestCase
             'logs_pkey',
         ], array_keys($indexes));
         self::assertStringContainsString('USING btree (event_timestamp DESC, id DESC)', (string) $indexes['logs_event_timestamp_id_idx']['definition']);
-        self::assertSame('{jsonb_path_ops}', $indexes['logs_attributes_text_gin_idx']['operator_classes']);
+        self::assertSame('{gin_hstore_ops}', $indexes['logs_attributes_text_gin_idx']['operator_classes']);
         self::assertSame('{gin_trgm_ops}', $indexes['logs_message_trgm_idx']['operator_classes']);
-        self::assertStringContainsString('fastupdate=on', (string) $indexes['logs_attributes_text_gin_idx']['reloptions']);
+        self::assertSame(
+            ['fastupdate=on', 'gin_pending_list_limit=4096'],
+            explode(',', trim((string) $indexes['logs_attributes_text_gin_idx']['reloptions'], '{}')),
+        );
         self::assertStringContainsString('fastupdate=on', (string) $indexes['logs_message_trgm_idx']['reloptions']);
 
         $durability = (array) DB::selectOne(<<<'SQL'

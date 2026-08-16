@@ -60,7 +60,7 @@ final class LogIngestionEndpointTest extends TestCase
         self::assertSame(1, $insertStatements);
         self::assertSame(1, DB::table('logs')->count());
 
-        $row = DB::selectOne('SELECT attributes, attributes_text FROM logs');
+        $row = DB::selectOne('SELECT attributes, hstore_to_jsonb(attributes_text) AS attributes_text FROM logs');
         self::assertNotNull($row);
         self::assertEquals(
             ['request_id' => 'a,b', 'attempt' => 2, 'cached' => false],

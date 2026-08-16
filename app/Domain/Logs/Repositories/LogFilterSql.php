@@ -35,7 +35,7 @@ final class LogFilterSql
         }
 
         foreach ($filters->attributes as $key => $value) {
-            $where[] = 'attributes_text @> jsonb_build_object(CAST(? AS text), CAST(? AS text))';
+            $where[] = 'attributes_text @> hstore(CAST(? AS text), CAST(? AS text))';
             $bindings[] = $key;
             $bindings[] = $value;
         }
